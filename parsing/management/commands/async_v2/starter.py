@@ -10,7 +10,7 @@ def starter():
     JobTasker.objects.create(name="async parser")
     channels = Channel.objects.filter(parsed=False)
     keys = YoutubeKey.objects.filter(alive=True)[0:]
-    loop=asyncio.new_event_loop()
+    loop = asyncio.new_event_loop()
     loop.create_task(start_parsing(channels, keys))
     loop.run_forever()
     # asyncio.run()
@@ -19,7 +19,6 @@ def starter():
 
 
 async def start_parsing(channels, keys):
-
     await asyncio.gather(*[
         YoutubeScrapy(channel, keys).get_channel_info() for channel in channels
     ])

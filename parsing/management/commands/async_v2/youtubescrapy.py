@@ -50,7 +50,7 @@ class YoutubeScrapy:
 
     async def get_channel_info(self):
 
-        log("get_channel_info")
+        log("get_channel_info",self.channel.channel_id,self.channel.username)
         if self.channel.channel_id == "":
             url = f"{URL}channels?part=contentDetails&part=statistics&part=snippet&forUsername={self.channel.username}"
         else:
@@ -137,11 +137,6 @@ class YoutubeScrapy:
             video_id = data['video_id']
             subs = data['subs']
             if comments is None:
-                try:
-                    print("save video")
-                    VideoDone.objects.create(video_id=video_id, channel_id=self.channel, comments_parsed=True)
-                except Exception as e:
-                    print(e)
                 queue.task_done()
                 print("task done", count, "----", max_length)
                 count += 1
@@ -156,6 +151,7 @@ class YoutubeScrapy:
                             asyncio.create_task(self.get_reply_comment(reply, queue, video_id))
 
                 try:
+                    print('save comments <-> <-> <->',len(comments))
                     UserCommentsVideo.objects.bulk_create(comments, ignore_conflicts=True)
                     SubscriberWithoutChannel.objects.bulk_create(whs, ignore_conflicts=True)
                 except Exception as e:
@@ -241,9 +237,9 @@ class YoutubeScrapy:
             print("error parse comments", e)
         try:
             print("save video from func")
-            VideoDone.objects.create(video_id=video_id, channel_id=self.channel, comments_parsed=True)
+            VideoDone.objects.get_or_create(video_id=video_id, channel_id=self.channel, comments_parsed=True)
         except Exception as e:
-            print("save video e", e)
+            print("save video")
         await queue.put(dict(comments=None, video_id=video_id, subs=None))
 
     async def call_request(self, url):

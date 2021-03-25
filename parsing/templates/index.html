@@ -11,7 +11,7 @@
 <table class="table">
     <thead class="thead-dark">
     <tr>
-    <th scope="col">index</th>
+        <th scope="col">index</th>
         {% for key,value in thead.items %}
             <th scope="col">{{ key }}</th>
         {% endfor %}
@@ -21,7 +21,7 @@
     <tbody>
     {% for result in results %}
         <tr>
-        <th scope="row">{{ forloop.counter }}</th>
+            <th scope="row">{{ forloop.counter }}</th>
             {% for key,value in result.items %}
                 <td>{{ value }}</td>
             {% endfor %}
@@ -29,6 +29,13 @@
     {% endfor %}
 
     </tbody>
+
+    <tr class="thead-dark">
+        <th scope="col">index</th>
+        {% for key,value in thead.items %}
+            <th scope="col">{{ key }}</th>
+        {% endfor %}
+    </tr>
 </table>
 
 

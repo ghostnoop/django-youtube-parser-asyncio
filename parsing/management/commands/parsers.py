@@ -1,4 +1,3 @@
-from parsing.management.commands.keys import keys
 from parsing.management.commands.youtube_parsing import *
 
 
@@ -18,17 +17,6 @@ def func(x, lock):
 
 def get_path():
     print(os.getcwd())
-
-
-def key_load():
-    key_per = keys()
-    for i in key_per:
-        try:
-            YoutubeKey.objects.create(token=i, alive=True, banned="")
-            print("added")
-        except Exception as e:
-            print(e)
-            print("error")
 
 
 LINKS = ['vk', 'instagram', 'tg', 'facebook', 'twitter']
@@ -216,8 +204,9 @@ def internal_def_v1(channels):
 
 
 def internal_def(channels):
-    global_count=0
+    global_count = 0
     for channel in channels:
+        print('started_channel', channel.pk)
         print("get")
         comments_all = list(
             UserCommentsVideo.objects.filter(channel_id_id=channel.id).values_list('user_id', flat=True))
@@ -226,6 +215,7 @@ def internal_def(channels):
         try:
             PreloadedStatistic.objects.create(channel_id=channel)
         except Exception as e:
+            print(e)
             pass
         preload = PreloadedStatistic.objects.get(channel_id=channel)
         per_video = list(CommentPerVideo.objects.filter(channel_id=channel).values_list('comment_count', flat=True))
@@ -239,13 +229,61 @@ def internal_def(channels):
                 pass
         counter = len(comments_all)
         commenters = len(set(comments_all))
-        print("all done go to save",counter,count_per_video_comments,commenters,channel.id)
+        print("all done go to save", counter, count_per_video_comments, commenters, channel.id)
         preload.comments_all_count = count_per_video_comments
-        preload.commenters_count=commenters
-        preload.comments_count=counter
+        preload.commenters_count = commenters
+        preload.comments_count = counter
         preload.save()
         print("done save")
-        global_count+=counter
-        print(global_count,"preeee")
-    print(global_count,"finished")
+        global_count += counter
+        print(global_count, "preeee")
+    print(global_count, "finished")
     print("done all")
+
+
+def interval_def_v2(channels):
+    for channel in channels:
+        print('channel', channel.pk)
+        obj, created = FinishedStatistic.objects.get_or_create(channel_id=channel)
+        obj.videos_done = VideoDone.objects.filter(channel_id=channel).count()
+        comments_all_count = 0
+        array = list(CommentPerVideo.objects.filter(channel_id=channel).values_list('comment_count', flat=True))
+        for i in array:
+            try:
+                comments_all_count += int(i)
+            except:
+                pass
+
+        obj.comments_all = comments_all_count
+
+        comments_all = list(
+            UserCommentsVideo.objects.filter(channel_id_id=channel.id).values_list('user_id', flat=True)
+        )
+        counter = len(comments_all)
+        commenters = len(set(comments_all))
+
+        obj.comments = counter
+        obj.commenters = commenters
+
+        obj.subscribers = Subscriber.objects.filter(channel_pk=channel).count()
+
+        sub_percent = get_percent(obj.subscribers, channel.subscriber_count)
+
+        video_percent = get_percent(obj.videos_done, channel.video_count)
+
+        comments_percent = get_percent(counter, comments_all_count)
+
+        obj.sub_percent = sub_percent
+        obj.video_percent = video_percent
+        obj.comment_percent = comments_percent
+
+        obj.save()
+        print('done save channel stats')
+
+
+def get_percent(a, b):
+    try:
+        percent = float(a) / float(b)
+        return round(percent * 100, 1)
+    except:
+        return 0.0

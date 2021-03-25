@@ -73,7 +73,6 @@ def get_response(url: str):
 
 async def get_response_v2(url: str):
     key = get_key()
-    print("tut")
     while True:
         resp=requests.get(url+f"&key={key.token}")
         response = resp.json()

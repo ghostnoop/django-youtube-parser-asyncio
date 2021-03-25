@@ -97,7 +97,12 @@ async def stats_per_hours(channel, hour):
 class RouteStatisticAsync(View):
     def get(self, request):
         channels = Channel.objects.all()
-        answers = asyncio.run(parallerizm(channels))
+        answers = []
+        for channel in channels:
+            t = statisticer_v2(channel)
+            if t is not None:
+                answers.append(t)
+        print('d')
         thead = answers[0]
         answers.append(sum_columns(answers))
 
@@ -111,8 +116,10 @@ async def parallerizm(channels):
     for channel in channels:
         print(channel.channel_id)
         try:
-            t = await loop.create_task(statisticer(channel))
+            t = await loop.create_task(statisticer_v2(channel))
+            print('t good')
         except Exception as e:
+            print(e)
             print(e)
             continue
 
@@ -174,6 +181,30 @@ async def statisticer(channel):
         "videos%": video_percent,
         "comments%": comments_percent
     }
+
+
+def statisticer_v2(channel):
+    try:
+        stat = FinishedStatistic.objects.get(channel_id=channel)
+        print('good')
+        return {
+            "name": channel.username,
+            "pk": channel.channel_id,
+            "viewCount": channel.view_count,
+            "subscriberCount": channel.subscriber_count,
+            "subscribers": stat.subscribers,
+            "videos all": channel.video_count,
+            "videos done": stat.videos_done,
+            "comments all": stat.comments_all,
+            "comments": stat.comments,
+            "commenters": stat.commenters,
+            "subs%": f'{stat.sub_percent}%',
+            "videos%": f'{stat.video_percent}%',
+            "comments%": f'{stat.comment_percent}%'
+        }
+    except Exception as e:
+        print(e)
+        return None
 
 
 def try_except(value):

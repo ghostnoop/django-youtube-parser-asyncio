@@ -1,4 +1,3 @@
-import asyncio
 import threading
 from datetime import datetime, timedelta
 
@@ -9,10 +8,13 @@ from django_apscheduler.jobstores import DjangoJobStore
 
 # runapscheduler
 from myyoutube import settings
-from parsing.management.commands.async_parsing.async_parsing import AsyncYoutube
 from parsing.management.commands.async_v2.starter import starter
-from parsing.management.commands.parsers import start_parsing, get_info_scrapy, internal_def
-from parsing.management.commands.parsing_subs.get_subs import api_getter_starter
+from parsing.management.commands.image_worker.image_executor import executor
+from parsing.management.commands.image_worker.image_uploader import upload_starter
+from parsing.management.commands.multiprocessing_parser.YoutubeParserStarter import starter_youtube_parse
+from parsing.management.commands.parsers import start_parsing, get_info_scrapy, internal_def, interval_def_v2
+from parsing.management.commands.parsing_subs.get_subs_v3 import api_getter_starter_v3
+from parsing.management.commands.scraper.get_info_about_sub import starter_getter_info
 from parsing.models import *
 
 
@@ -44,7 +46,7 @@ def my_tob():
 def interval_job():
     JobTasker.objects.create(name="interval_job")
     channels = Channel.objects.all()
-    internal_def(channels)
+    interval_def_v2(channels)
 
 
 def per_hour_statistic():
@@ -71,7 +73,73 @@ def per_hour_statistic():
             print("preload", e)
 
 
+def shedulers_obj(scheduler):
+    from django.utils import timezone
+    now = timezone.now()
+    print(now)
+    date = datetime.now() + timedelta(seconds=5)
+    # starter()
+    scheduler.add_job(
+        starter_youtube_parse,
+        trigger=CronTrigger(hour=date.hour, minute=date.minute, second=date.second, day_of_week=date.weekday()),
+        id="my_job",
+        max_instances=1,
+        replace_existing=True,
+    )
 
+    scheduler.add_job(
+        api_getter_starter_v3,
+        trigger=CronTrigger(hour='*/4'),
+        id="subs_job",
+        max_instances=1,
+        replace_existing=True,
+    )
+
+    scheduler.add_job(
+        starter_getter_info,
+        trigger=CronTrigger(hour=date.hour, minute=date.minute, second=date.second),  # Every 10 seconds
+        id="my_tob",  # The `id` assigned to each job MUST be unique
+        max_instances=1,
+        replace_existing=True,
+    )
+    date = date + timedelta(seconds=5)
+    scheduler.add_job(
+        interval_job,
+        trigger=CronTrigger(hour=date.hour, minute=date.minute, second=date.second + 10),  # Every 10 seconds
+        id="pre_interval_job",  # The `id` assigned to each job MUST be unique
+        max_instances=1,
+        replace_existing=True,
+    )
+
+    scheduler.add_job(
+        interval_job,
+        trigger=CronTrigger(hour="*/1"),  # Every 10 seconds
+        id="interval_job",  # The `id` assigned to each job MUST be unique
+        max_instances=1,
+        replace_existing=True,
+    )
+
+    scheduler.add_job(
+        executor,
+        trigger=CronTrigger(hour=date.hour, minute=date.minute, second=date.second),  # Every 10 seconds
+        id="my_tob",  # The `id` assigned to each job MUST be unique
+        max_instances=1,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        upload_starter,
+        trigger=CronTrigger(minute="*/30"),  # Every 10 seconds
+        id="my_tob",  # The `id` assigned to each job MUST be unique
+        max_instances=1,
+        replace_existing=True,
+    )
+
+
+def shedulers_upload(scheduler):
+    from django.utils import timezone
+    now = timezone.now()
+    print(now)
+    date = datetime.now() + timedelta(seconds=5)
 
 
 class Command(BaseCommand):
@@ -82,60 +150,13 @@ class Command(BaseCommand):
 
         scheduler = BlockingScheduler(timezone=settings.TIME_ZONE)
         scheduler.add_jobstore(DjangoJobStore(), "default")
-        from django.utils import timezone
-        now = timezone.now()
-        print(now)
-        date = datetime.now() + timedelta(seconds=5)
 
+        shedulers_obj(scheduler)
+        # starter_youtube_parse()
         # starter()
-        scheduler.add_job(
-            starter,
-            trigger=CronTrigger(hour=date.hour, minute=date.minute, second=date.second, day_of_week=date.weekday()),
-            id="my_job",
-            max_instances=1,
-            replace_existing=True,
-        )
+        # upload_starter()
         #
-        scheduler.add_job(
-            api_getter_starter,
-            trigger=CronTrigger(hour=date.hour, minute=date.minute, second=date.second, day_of_week=date.weekday()),
-            id="subs_job",
-            max_instances=1,
-            replace_existing=True,
-        )
-        # api_getter_starter()
-
-        #
-        # scheduler.add_job(
-        #     my_tob,
-        #     trigger=CronTrigger(hour=date.hour, minute=date.minute, second=date.second),  # Every 10 seconds
-        #     id="my_tob",  # The `id` assigned to each job MUST be unique
-        #     max_instances=1,
-        #     replace_existing=True,
-        # )
         # interval_job()
-
-        scheduler.add_job(
-            interval_job,
-            trigger=CronTrigger(hour="*/1"),  # Every 10 seconds
-            id="interval_job",  # The `id` assigned to each job MUST be unique
-            max_instances=1,
-            replace_existing=True,
-        )
-        scheduler.add_job(
-            per_hour_statistic,
-            trigger=CronTrigger(hour='*/1'),  # Every 10 seconds
-            id="interval_job",  # The `id` assigned to each job MUST be unique
-            max_instances=1,
-            replace_existing=True,
-        )
-        # interval_job()
-
-
-        #
-        #
-        #
-        # starter()
 
         try:
             scheduler.start()

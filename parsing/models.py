@@ -8,7 +8,7 @@ from django.db import models
 # Create your models here.
 class Channel(models.Model):
     username = models.CharField(max_length=200, default="", blank=True)
-    channel_id = models.CharField(max_length=200, default="", blank=True, unique=True)
+    channel_id = models.CharField(max_length=200, default=None, blank=True, unique=True, null=True)
     parsed = models.BooleanField(default=False)
     view_count = models.CharField(max_length=200, default="--", blank=True, null=True)
     subscriber_count = models.CharField(max_length=200, default="--", blank=True, null=True)
@@ -45,6 +45,7 @@ class Subscriber(models.Model):
     twitter = models.CharField(max_length=300, default="")
     others_links = models.TextField(default="")
     parsed_date = models.DateTimeField(auto_now_add=True)
+    image_executed = models.BooleanField(default=False)
 
 
 class JobTasker(models.Model):
@@ -76,7 +77,7 @@ class CommentPerVideo(models.Model):
     like_count = models.CharField(max_length=200)
     dislike_count = models.CharField(max_length=200)
     view_count = models.CharField(max_length=200)
-    video_id = models.CharField(max_length=200,unique=True)
+    video_id = models.CharField(max_length=200, unique=True)
     channel_id = models.ForeignKey(Channel, on_delete=models.SET(0))
     parsed_date = models.DateTimeField(auto_now_add=True)
 
@@ -86,6 +87,18 @@ class PreloadedStatistic(models.Model):
     comments_count = models.BigIntegerField(default=0)
     comments_all_count = models.BigIntegerField(default=0)
     commenters_count = models.BigIntegerField(default=0)
+
+
+class FinishedStatistic(models.Model):
+    channel_id = models.ForeignKey(Channel, on_delete=models.CASCADE, unique=True)
+    videos_done = models.IntegerField(default=0)
+    subscribers = models.BigIntegerField(default=0)
+    comments_all = models.BigIntegerField(default=0)
+    comments = models.BigIntegerField(default=0)
+    commenters = models.BigIntegerField(default=0)
+    sub_percent = models.FloatField(default=0.0)
+    video_percent = models.FloatField(default=0.0)
+    comment_percent = models.FloatField(default=0.0)
 
 
 class PreLoadedHourStatistic(models.Model):
@@ -121,6 +134,12 @@ class VideoDone(models.Model):
         else:
             # VideoDone.objects.create(video_id=video_id, channel_id=channel_id)
             return False
+
+
+class ImageWithSubscriber(models.Model):
+    subscriber_id = models.ForeignKey(Subscriber, on_delete=models.SET(0), unique=True)
+    image_link = models.CharField(max_length=255)
+    uploaded = models.BooleanField(default=False)
 
 
 class TestClasser(models.Model):

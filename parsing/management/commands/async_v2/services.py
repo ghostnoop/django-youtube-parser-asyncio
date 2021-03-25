@@ -4,6 +4,7 @@ import random
 
 import aiohttp
 import ratelimit
+import requests
 from ratelimit import sleep_and_retry
 
 from parsing.models import YoutubeKey
@@ -12,15 +13,16 @@ from parsing.models import YoutubeKey
 async def request_worker(url, key):
     try:
         url = f"{url}&key={key}"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=5) as response:
-                resp = await response.json()
-            await session.close()
+        resp = requests.get(url).json()
+        # async with aiohttp.ClientSession() as session:
+        #     async with session.get(url, timeout=5) as response:
+        #         resp = await response.json()
+        #     await session.close()
         return resp
     #             # response = await session.request(method='GET', url=url, timeout=5, allow_redirects=False)
     except Exception as e:
         print(e)
-        await session.close()
+        # await session.close()
         return None
 
 
